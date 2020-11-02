@@ -1,5 +1,6 @@
 -- set default game size
 GWIDTH, GHEIGHT = 3840, 2160
+local drag = {}
 
 local cards = {
   [1] = { -- Land: Swamp Island
@@ -22,7 +23,6 @@ local cards = {
 
 local pool = {}
 local deck = {}
-
 local uuid = 0
 local desk = {}
 local function addCardToDesk(id, x, y)
@@ -148,7 +148,38 @@ function love.load()
 end
 
 function love.update()
+  -- update card dragging
+  if drag.offx and drag.offy and drag.uuid and desk[drag.uuid] then
+    local x, y = (love.mouse.getX()-xtranslate)/scale, (love.mouse.getY()-ytranslate)/scale
+    desk[drag.uuid].x = x + drag.offx
+    desk[drag.uuid].y = y + drag.offy
+  end
+end
 
+function love.mousepressed(x, y, button)
+  local x, y = (x-xtranslate)/scale, (y-ytranslate)/scale
+
+  local active, offx, offy = nil, 0, 0
+  for uuid, card in pairs(desk) do
+    if x > card.x and x < card.x + card.width and
+       y > card.y and y < card.y + card.height
+    then
+      active = uuid
+      offx = card.x - x
+      offy = card.y - y
+      break
+    end
+  end
+
+  if active then
+    drag.uuid = active
+    drag.offx = offx
+    drag.offy = offy
+  end
+end
+
+function love.mousereleased(x, y, button)
+  drag.uuid = nil
 end
 
 function love.draw()
@@ -165,10 +196,16 @@ function love.draw()
   love.graphics.setColor(1,1,1,1)
   love.graphics.draw(background,quad,0,0)
 
-  love.graphics.setColor(.2,.2,.2,1)
-
-  -- draw all cards
+  -- draw all regular cards
   for uuid, card in pairs(desk) do
+    if drag.uuid ~= uuid then
+      drawCard(card.id, card.x, card.y, card.size)
+    end
+  end
+
+  -- draw card that is dragged at the end
+  if drag.uuid then
+    local card = desk[drag.uuid]
     drawCard(card.id, card.x, card.y, card.size)
   end
 end
