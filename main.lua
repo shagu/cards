@@ -12,6 +12,8 @@ local cards = {
 
   [2] = { -- Spell: Shock!
     type = "Spell", cost = 3, phase = nil, name = "Shock",
+    picture = "2.png", artist = "Unknown", bgpic = "bg.png",
+    text = "Deals 2 Damage to an enemy player or creature.",
     function(player, target)
       target.life = target.life - 2
     end
@@ -20,6 +22,14 @@ local cards = {
 
 local pool = {}
 local deck = {}
+
+local uuid = 0
+local desk = {}
+local function addCardToDesk(id, x, y)
+  local newCard = { x = x or 100, y = y or 100, width = 240, height = 400, size = 1, id = id or 1 }
+  table.insert(desk, newCard)
+  uuid = uuid + 1
+end
 
 local function drawCard(id, x, y, size)
   local size = size or 1
@@ -34,7 +44,7 @@ local function drawCard(id, x, y, size)
     card.graphicbg = love.graphics.newImage("img/" .. (card.bgpic or "bg.png"))
   end
 
-  if not card.graphic then
+  if not card.graphic and card.picture then
     card.graphic = love.graphics.newImage("img/" .. card.picture)
   end
 
@@ -104,8 +114,10 @@ local function drawCard(id, x, y, size)
   end
 
   -- artist
-  love.graphics.setColor(1,1,1,1)
-  love.graphics.print("Artist: " .. card.artist, x + 10*size, y + 380*size)
+  if card.artist then
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.print("Artist: " .. card.artist, x + 10*size, y + 380*size)
+  end
 end
 
 function love.load()
@@ -128,6 +140,11 @@ function love.load()
       table.insert(deck, id)
     end
   end
+
+  -- add dummy cards
+  addCardToDesk(1, 100, 100)
+  addCardToDesk(1, 400, 100)
+  addCardToDesk(2, 100, 600)
 end
 
 function love.update()
@@ -145,10 +162,13 @@ function love.draw()
     love.graphics.scale(scale, scale)
   end
 
+  love.graphics.setColor(1,1,1,1)
   love.graphics.draw(background,quad,0,0)
 
   love.graphics.setColor(.2,.2,.2,1)
 
-  -- test card draw
-  drawCard(1, 100, 100, overall)
+  -- draw all cards
+  for uuid, card in pairs(desk) do
+    drawCard(card.id, card.x, card.y, card.size)
+  end
 end
