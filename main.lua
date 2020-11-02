@@ -26,7 +26,7 @@ local deck = {}
 local uuid = 0
 local desk = {}
 local function addCardToDesk(id, x, y)
-  local newCard = { x = x or 100, y = y or 100, width = 240, height = 400, size = 1, id = id or 1 }
+  local newCard = { x = x or 100, y = y or 100, width = 240, height = 400, size = 1, id = id or 1, uuid = uuid }
   table.insert(desk, newCard)
   uuid = uuid + 1
 end
@@ -149,10 +149,15 @@ end
 
 function love.update()
   -- update card dragging
-  if drag.offx and drag.offy and drag.uuid and desk[drag.uuid] then
-    local x, y = (love.mouse.getX()-xtranslate)/scale, (love.mouse.getY()-ytranslate)/scale
-    desk[drag.uuid].x = x + drag.offx
-    desk[drag.uuid].y = y + drag.offy
+  if drag.offx and drag.offy and drag.uuid then
+    for k, v in pairs(desk) do
+      if v.uuid == drag.uuid then
+        local x, y = (love.mouse.getX()-xtranslate)/scale, (love.mouse.getY()-ytranslate)/scale
+        v.x = x + drag.offx
+        v.y = y + drag.offy
+        break
+      end
+    end
   end
 end
 
@@ -160,21 +165,39 @@ function love.mousepressed(x, y, button)
   local x, y = (x-xtranslate)/scale, (y-ytranslate)/scale
 
   local active, offx, offy = nil, 0, 0
-  for uuid, card in pairs(desk) do
+  for order, card in pairs(desk) do
     if x > card.x and x < card.x + card.width and
        y > card.y and y < card.y + card.height
     then
-      active = uuid
+      active = card.uuid
       offx = card.x - x
       offy = card.y - y
-      break
     end
   end
 
   if active then
+    local olddesk = desk
+
     drag.uuid = active
     drag.offx = offx
     drag.offy = offy
+
+    -- rearrange desk z-layers
+    desk = {}
+
+    -- add all old cards in same order
+    for id, card in pairs(olddesk) do
+      if card.uuid ~= drag.uuid then
+        table.insert(desk, card)
+      end
+    end
+
+    -- place current drag at the top
+    for id, card in pairs(olddesk) do
+      if card.uuid == drag.uuid then
+        table.insert(desk, card)
+      end
+    end
   end
 end
 
@@ -197,15 +220,7 @@ function love.draw()
   love.graphics.draw(background,quad,0,0)
 
   -- draw all regular cards
-  for uuid, card in pairs(desk) do
-    if drag.uuid ~= uuid then
-      drawCard(card.id, card.x, card.y, card.size)
-    end
-  end
-
-  -- draw card that is dragged at the end
-  if drag.uuid then
-    local card = desk[drag.uuid]
+  for order, card in pairs(desk) do
     drawCard(card.id, card.x, card.y, card.size)
   end
 end
